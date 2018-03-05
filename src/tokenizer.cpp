@@ -57,6 +57,29 @@ bool is_stopword(const std::string& word) {
     return std::binary_search(stopwords.begin(), stopwords.end(), word);
 }
 
+std::string normalize(const std::string& token) {
+    // remove punctuation using heuristics
+    std::string result = remove_punctuation(token);
+    // convert string to lowercase
+    std::transform(result.begin(), result.end(), result.begin(), tolower);
+    // if string is a stopword, return empty string
+    if (is_stopword(result)) {
+        return "";
+    }
+    // stem the word
+    auto word_end = static_cast<size_t>(stem(&result[0], 0, result.size() - 1));
+    result = result.substr(0, word_end + 1);
+
+    return result;
+}
+
+void normalize_all(std::vector<std::string>& token_vec) {
+    std::transform(token_vec.begin(), token_vec.end(), token_vec.begin(),
+                   normalize);
+    token_vec.erase(std::remove(token_vec.begin(), token_vec.end(), ""),
+                    token_vec.end());
+}
+
 std::vector<std::string> get_doc_terms(const raw_doc& doc) {
     std::vector<std::string> tokens;
 
@@ -65,31 +88,8 @@ std::vector<std::string> get_doc_terms(const raw_doc& doc) {
         raw_doc doc_copy(doc);
         tokens = tokenize(doc_copy);
     }
-
-    // remove punctuation
-    for (auto& token : tokens) {
-        token = remove_punctuation(token);
-    }
-
-    // case-folding
-    for (auto& token : tokens) {
-        std::transform(token.begin(), token.end(), token.begin(), tolower);
-    }
-
-    // stopword removal
-    for (auto& token : tokens) {
-        if (is_stopword(token)) {
-            token.clear();
-        }
-    }
-    tokens.erase(std::remove(tokens.begin(), tokens.end(), ""), tokens.end());
-
-    // stemming
-    for (auto& token : tokens) {
-        auto word_end =
-            static_cast<size_t>(stem(&token[0], 0, token.size() - 1));
-        token = token.substr(0, word_end + 1);
-    }
+    // normalization
+    normalize_all(tokens);
 
     return tokens;
 }

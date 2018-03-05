@@ -1,10 +1,11 @@
 #include "file_manager.hpp"
 #include "query_processor.hpp"
+#include "tokenizer.hpp"
 #include <algorithm>
 #include <iostream>
 #include <util.hpp>
 
-std::vector<size_t> handle_conjunctive_query(const std::string& query) {
+std::vector<std::string> tokenize_conjunctive_query(const std::string& query) {
     std::string query_search_part = query.substr(2);
     std::vector<std::string> tokens = split(query_search_part, " ");
     if (tokens.size() % 2 == 0) {
@@ -22,17 +23,22 @@ std::vector<size_t> handle_conjunctive_query(const std::string& query) {
         }
     }
 
-    return conjunctive_query(words);
+    // normalize words
+    normalize_all(words);
+    return words;
 }
 
-std::vector<size_t> handle_phrase_query(const std::string& query) {
+std::vector<std::string> tokenize_phrase_query(const std::string& query) {
     std::string query_search_part = query.substr(2);
-    std::vector<std::string> tokens = split(query_search_part, " ");
+    std::vector<std::string> words = split(query_search_part, " ");
 
-    return phrase_query(tokens);
+    // normalize words
+    normalize_all(words);
+    return words;
 }
 
-std::vector<size_t> handle_proximity_query(const std::string& query) {
+std::pair<std::vector<std::string>, std::vector<size_t>>
+tokenize_proximity_query(const std::string& query) {
     std::string query_search_part = query.substr(2);
     std::vector<std::string> tokens = split(query_search_part, " ");
     if (tokens.size() % 2 == 0) {
@@ -54,13 +60,20 @@ std::vector<size_t> handle_proximity_query(const std::string& query) {
         }
     }
 
-    return proximity_query(words, dists);
+    // normalize words
+    normalize_all(words);
+
+    return {words, dists};
 }
 
 int main() {
+    QueryProcessor query_processor;
     try {
         auto dict = read_dict_file();
         auto index = read_index_file();
+
+        query_processor.dict(dict);
+        query_processor.index(index);
     } catch (const std::runtime_error& e) {
         std::cout << e.what() << std::endl;
         return -1;
@@ -96,11 +109,19 @@ int main() {
         std::vector<size_t> results;
         try {
             if (query[0] == '0') {
-                results = handle_conjunctive_query(query);
+                auto tokens = tokenize_conjunctive_query(query);
+                results = query_processor.conjunctive_query(tokens);
             } else if (query[0] == '1') {
-                results = handle_phrase_query(query);
+                auto tokens = tokenize_phrase_query(query);
+                std::vector<size_t> dists(tokens.size() - 1, 0);
+
+                results = query_processor.proximity_query(tokens, dists);
             } else if (query[0] == '2') {
-                results = handle_proximity_query(query);
+                std::vector<std::string> tokens;
+                std::vector<size_t> dists;
+                std::tie(tokens, dists) = tokenize_proximity_query(query);
+
+                results = query_processor.proximity_query(tokens, dists);
             }
         } catch (const std::runtime_error& e) {
             std::cout << e.what() << std::endl;
