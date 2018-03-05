@@ -5,9 +5,18 @@
 #include <iostream>
 #include <util.hpp>
 
+/**
+ * @brief Tokenize conjunctive query by finding the query keywords and returning
+ * the normalized versions of the keywords using ir::normalize.
+ *
+ * todo: explain
+ *
+ * @param query
+ * @return
+ */
 std::vector<std::string> tokenize_conjunctive_query(const std::string& query) {
     std::string query_search_part = query.substr(2);
-    std::vector<std::string> tokens = split(query_search_part, " ");
+    std::vector<std::string> tokens = ir::split(query_search_part, " ");
     if (tokens.size() % 2 == 0) {
         throw std::runtime_error("Invalid conjunctive query");
     }
@@ -24,23 +33,42 @@ std::vector<std::string> tokenize_conjunctive_query(const std::string& query) {
     }
 
     // normalize words
-    normalize_all(words);
+    ir::normalize_all(words);
     return words;
 }
 
+/**
+ * @brief Tokenize phrase query by finding the query keywords and returning
+ * the normalized versions of the keywords using ir::normalize.
+ *
+ * todo: explain
+ *
+ * @param query
+ * @return
+ */
 std::vector<std::string> tokenize_phrase_query(const std::string& query) {
     std::string query_search_part = query.substr(2);
-    std::vector<std::string> words = split(query_search_part, " ");
+    std::vector<std::string> words = ir::split(query_search_part, " ");
 
     // normalize words
-    normalize_all(words);
+    ir::normalize_all(words);
     return words;
 }
 
+/**
+ * @brief Tokenize proximity query by finding the query keywords and distances,
+ * and returning the normalized versions of the keywords along with the
+ * distances.
+ *
+ * todo: explain
+ *
+ * @param query
+ * @return
+ */
 std::pair<std::vector<std::string>, std::vector<size_t>>
 tokenize_proximity_query(const std::string& query) {
     std::string query_search_part = query.substr(2);
-    std::vector<std::string> tokens = split(query_search_part, " ");
+    std::vector<std::string> tokens = ir::split(query_search_part, " ");
     if (tokens.size() % 2 == 0) {
         throw std::runtime_error("Invalid proximity query");
     }
@@ -61,25 +89,31 @@ tokenize_proximity_query(const std::string& query) {
     }
 
     // normalize words
-    normalize_all(words);
+    ir::normalize_all(words);
 
     return {words, dists};
 }
 
+/**
+ * @brief Main routine to read the indices constructed using indexer and answer
+ * conjunctive, phrase and proximity queries in an infinite input loop.
+ *
+ * User input is taken from STDIN and output is written to STDOUT.
+ *
+ * @return 0 if the program is terminated using Ctrl-D, -1 if there is a problem
+ * in reading index files.
+ */
 int main() {
-    QueryProcessor query_processor;
+    ir::QueryProcessor query_processor;
     try {
-        auto dict = read_dict_file();
-        auto index = read_index_file();
-
-        query_processor.dict(dict);
-        query_processor.index(index);
+        query_processor =
+            ir::QueryProcessor(ir::read_dict_file(), ir::read_index_file());
     } catch (const std::runtime_error& e) {
         std::cout << e.what() << std::endl;
         return -1;
     }
 
-    const std::string query_headers = "012";
+    const std::string query_headers = "123";
 
     std::string query;
     while (std::cin) {
@@ -92,15 +126,15 @@ int main() {
 
         bool proper_query =
             query.size() > 2 && query[1] == ' ' && !isspace(query[2]) &&
-            one_of(query_headers.begin(), query_headers.end(), query[0]);
+            ir::one_of(query_headers.begin(), query_headers.end(), query[0]);
         if (!proper_query) {
             std::cout
                 << "Your query must be in the format: <query_type> "
                    "<query>\nwhere\n"
-                   "\tquery_type == 0 --> conjunctive query:\t<w1> AND <w2> "
+                   "\tquery_type == 1 --> conjunctive query:\t<w1> AND <w2> "
                    "AND ... AND <wn>\n"
-                   "\tquery_type == 1 --> phrase query:\t<w1> <w2> ... <wn>\n"
-                   "\tquery_type == 2 --> proximity query:\t<w1> /k1 <w2> /k2 "
+                   "\tquery_type == 2 --> phrase query:\t<w1> <w2> ... <wn>\n"
+                   "\tquery_type == 3 --> proximity query:\t<w1> /k1 <w2> /k2 "
                    "... /kn <wn+1>\n"
                 << std::endl;
             continue;
@@ -108,15 +142,15 @@ int main() {
 
         std::vector<size_t> results;
         try {
-            if (query[0] == '0') {
+            if (query[0] == '1') {
                 auto tokens = tokenize_conjunctive_query(query);
                 results = query_processor.conjunctive_query(tokens);
-            } else if (query[0] == '1') {
+            } else if (query[0] == '2') {
                 auto tokens = tokenize_phrase_query(query);
                 std::vector<size_t> dists(tokens.size() - 1, 0);
 
                 results = query_processor.proximity_query(tokens, dists);
-            } else if (query[0] == '2') {
+            } else if (query[0] == '3') {
                 std::vector<std::string> tokens;
                 std::vector<size_t> dists;
                 std::tie(tokens, dists) = tokenize_proximity_query(query);
