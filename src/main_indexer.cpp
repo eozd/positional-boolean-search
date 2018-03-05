@@ -1,17 +1,15 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <tokenizer.hpp>
 #include <unordered_map>
 #include <vector>
-#include <tokenizer.hpp>
 
+#include "doc_preprocessor.hpp"
 #include "file_manager.hpp"
 #include "parser.hpp"
-#include "doc_preprocessor.hpp"
 
-
-raw_doc_index
-docs_from_files(const std::vector<std::string>& file_list) {
+raw_doc_index docs_from_files(const std::vector<std::string>& file_list) {
     raw_doc_index all_docs;
     for (const auto& filepath : file_list) {
         std::ifstream ifs(filepath);
@@ -33,20 +31,65 @@ doc_term_index terms_from_raw_docs(const raw_doc_index& raw_docs) {
     return term_docs;
 }
 
+pos_inv_index build_pos_inv_index(const doc_term_index& term_docs) {
+    pos_inv_index result;
+
+    for (const auto& pair : term_docs) {
+        size_t doc_id = pair.first;
+        const auto& term_vec = pair.second;
+
+        for (size_t pos = 0; pos < term_vec.size(); ++pos) {
+            const auto& term = term_vec[pos];
+            auto& doc_to_pos = result[term];
+
+            // find pos index of the corresponding document
+            auto doc_of_term_it = std::find_if(
+                doc_to_pos.begin(), doc_to_pos.end(),
+                [doc_id](const std::pair<size_t, std::vector<size_t>>& elem) {
+                    return elem.first == doc_id;
+                });
+
+            if (doc_of_term_it == doc_to_pos.end()) {
+                // no pos list for the doc; create one
+                doc_to_pos.emplace_back(doc_id, std::vector<size_t>());
+                doc_to_pos.back().second.push_back(pos);
+            } else {
+                doc_of_term_it->second.push_back(pos);
+            }
+        }
+    }
+
+    // sort doc list of each term with respect to doc_id
+    for (auto& pair : result) {
+        auto& doc_vec = pair.second;
+        std::sort(doc_vec.begin(), doc_vec.end(),
+                  [](const auto& left, const auto& right) {
+                      return left.first < right.first;
+                  });
+    }
+
+    return result;
+}
+
 int main() {
+    // parse the files and read the docs
     auto raw_docs = docs_from_files(get_file_list());
 
+    // handle special html character sequences
     for (auto& pair : raw_docs) {
         auto& doc = pair.second;
         convert_html_special_chars(doc);
     }
 
+    // tokenize and normalize the documents
     auto term_docs = terms_from_raw_docs(raw_docs);
 
-    // todo: build the positional inverted positional index
+    // build the positional inverted index
+    auto inverted_index = build_pos_inv_index(term_docs);
 
-    // todo: write terms as a map<term, id>
-    // todo: write positional inverted index as a map<id, postings_list>
+    // save the positional inverted index as two files
+    create_dict_file(inverted_index);
+    create_index_file(inverted_index);
 
     return 0;
 }
