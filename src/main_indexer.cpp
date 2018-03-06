@@ -37,7 +37,7 @@ ir::raw_doc_index docs_from_files(const std::vector<std::string>& file_list) {
  *
  * @return Mapping from document IDs to vectors of normalized terms.
  */
-ir::doc_term_index terms_from_raw_docs(const ir::Tokenizer& tokenizer,
+ir::doc_term_index terms_from_raw_docs(ir::Tokenizer& tokenizer,
                                        const ir::raw_doc_index& raw_docs) {
     ir::doc_term_index term_docs;
     for (const auto& pair : raw_docs) {

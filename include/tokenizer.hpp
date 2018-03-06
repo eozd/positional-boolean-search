@@ -3,6 +3,7 @@
 #include "defs.hpp"
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 namespace ir {
 
@@ -16,6 +17,14 @@ class Tokenizer {
      * @brief Class to keep statistics related to tokenization operations.
      */
     struct Stats {
+        static constexpr size_t TopTermCount = 20;
+
+        /**
+         * @brief Default constructor for Stats.
+         *
+         * Each count is assigned to 0 and each array contains empty strings
+         */
+        Stats();
         /**
          * @brief Number of tokens the corpus contains before normalization
          * operations.
@@ -37,16 +46,17 @@ class Tokenizer {
          */
         size_t total_normalized_terms;
         /**
-         * @brief List of top 20 most frequent terms in the corpus before
-         * normalization operations.
+         * @brief List of top Stats::TopTermCount most frequent terms in the
+         * corpus before normalization operations.
          */
-        std::vector<std::string> top_unnormalized_terms;
+        std::array<std::string, TopTermCount> top_unnormalized_terms;
         /**
-         * @brief List of top 20 most frequent terms in the corpus after
-         * normalization operations.
+         * @brief List of top Stats::TopTermCount most frequent terms in the
+         * corpus after normalization operations.
          */
-        std::vector<std::string> top_normalized_terms;
+        std::array<std::string, TopTermCount> top_normalized_terms;
     };
+
     /**
      * @brief Split the given string with respect to whitespace characters and
      * return the resulting tokens and their positions in the document as a
@@ -57,7 +67,7 @@ class Tokenizer {
      * @return std::vector of pairs containing the tokens and their positions.
      */
     std::vector<std::pair<std::string, size_t>>
-    tokenize(const std::string& str) const;
+    tokenize(const std::string& str);
 
     /**
      * @brief Remove certain punctuation characters from certain parts of the
@@ -69,7 +79,7 @@ class Tokenizer {
      *
      * @return String with certain punctuation characters removed from token.
      */
-    std::string remove_punctuation(const std::string& token) const;
+    std::string remove_punctuation(const std::string& token);
 
     /**
      * @brief Tokenize and normalize a given raw document and return a
@@ -84,7 +94,7 @@ class Tokenizer {
      * @return std::vector of normalized terms in the given raw document.
      */
     std::vector<std::pair<std::string, size_t>>
-    get_doc_terms(const raw_doc& doc) const;
+    get_doc_terms(const raw_doc& doc);
 
     /**
      * @brief Return the normalized version a given token.
@@ -108,7 +118,7 @@ class Tokenizer {
      * @return Normalized version of the token. IF the given token is a
      * stopword, an empty string is returned.
      */
-    std::string normalize(const std::string& token) const;
+    std::string normalize(const std::string& token);
 
     /**
      * @brief Normalize all the tokens in the given vector of tokens
@@ -120,7 +130,7 @@ class Tokenizer {
      *
      * @param token_vec vector of tokens to normalize in-place.
      */
-    void normalize_all(std::vector<std::string>& token_vec) const;
+    void normalize_all(std::vector<std::string>& token_vec);
 
     /**
      * @brief Check whether the input string is a stopword.
@@ -136,7 +146,7 @@ class Tokenizer {
      *
      * @return true if word is in stopword list; false, otherwise.
      */
-    bool is_stopword(const std::string& word) const;
+    bool is_stopword(const std::string& word);
 
     /**
      * @brief Return the statistics gathered until this point.
@@ -146,9 +156,11 @@ class Tokenizer {
      * @return Stats struct storing various statistics about the tokenization
      * process.
      */
-    Stats stats() const;
+    Stats stats();
 
   private:
-    mutable Stats m_stats;
+    std::unordered_map<std::string, size_t> unnormalized_terms;
+    std::unordered_map<std::string, size_t> normalized_terms;
+    Stats m_stats;
 };
 } // namespace ir

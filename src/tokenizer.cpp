@@ -11,8 +11,12 @@
 // tell the compiler that stem will be externally linked
 extern int stem(char* p, int i, int j);
 
+ir::Tokenizer::Stats::Stats()
+    : total_unnormalized_tokens(0), total_normalized_tokens(0),
+      total_unnormalized_terms(0), total_normalized_terms(0) {}
+
 std::vector<std::pair<std::string, size_t>>
-ir::Tokenizer::tokenize(const std::string& str) const {
+ir::Tokenizer::tokenize(const std::string& str) {
     std::string str_copy(str);
     auto tokens = split(str_copy, " \t\n\r\v\f");
 
@@ -20,11 +24,12 @@ ir::Tokenizer::tokenize(const std::string& str) const {
     for (size_t i = 0; i < tokens.size(); ++i) {
         result.emplace_back(tokens[i], i);
     }
+    m_stats.total_unnormalized_tokens += result.size();
 
     return result;
 }
 
-std::string ir::Tokenizer::remove_punctuation(const std::string& token) const {
+std::string ir::Tokenizer::remove_punctuation(const std::string& token) {
     std::string result(token);
 
     // remove certain puncts from anywhere in the word
@@ -53,7 +58,7 @@ std::string ir::Tokenizer::remove_punctuation(const std::string& token) const {
     return result;
 }
 
-bool ir::Tokenizer::is_stopword(const std::string& word) const {
+bool ir::Tokenizer::is_stopword(const std::string& word) {
     static std::vector<std::string> stopwords;
 
     // if calling for the first time
@@ -71,7 +76,7 @@ bool ir::Tokenizer::is_stopword(const std::string& word) const {
     return std::binary_search(stopwords.begin(), stopwords.end(), word);
 }
 
-std::string ir::Tokenizer::normalize(const std::string& token) const {
+std::string ir::Tokenizer::normalize(const std::string& token) {
     // remove punctuation using heuristics
     std::string result = remove_punctuation(token);
     // convert string to lowercase
@@ -87,7 +92,7 @@ std::string ir::Tokenizer::normalize(const std::string& token) const {
     return result;
 }
 
-void ir::Tokenizer::normalize_all(std::vector<std::string>& token_vec) const {
+void ir::Tokenizer::normalize_all(std::vector<std::string>& token_vec) {
     // normalize all words in-place
     std::transform(
         token_vec.begin(), token_vec.end(), token_vec.begin(),
@@ -98,8 +103,12 @@ void ir::Tokenizer::normalize_all(std::vector<std::string>& token_vec) const {
 }
 
 std::vector<std::pair<std::string, size_t>>
-ir::Tokenizer::get_doc_terms(const raw_doc& doc) const {
+ir::Tokenizer::get_doc_terms(const raw_doc& doc) {
     auto tokens_indices = tokenize(doc);
+
+    std::for_each(
+        tokens_indices.begin(), tokens_indices.end(),
+        [this](const auto& pair) { ++(this->unnormalized_terms[pair.first]); });
 
     std::transform(
         tokens_indices.begin(), tokens_indices.end(), tokens_indices.begin(),
@@ -114,7 +123,36 @@ ir::Tokenizer::get_doc_terms(const raw_doc& doc) const {
                                         }),
                          tokens_indices.end());
 
+    std::for_each(
+        tokens_indices.begin(), tokens_indices.end(),
+        [this](const auto& pair) { ++(this->normalized_terms[pair.first]); });
+
+    m_stats.total_unnormalized_terms = unnormalized_terms.size();
+    m_stats.total_normalized_terms = normalized_terms.size();
+    m_stats.total_normalized_tokens += tokens_indices.size();
+
     return tokens_indices;
 }
 
-ir::Tokenizer::Stats ir::Tokenizer::stats() const { return m_stats; }
+ir::Tokenizer::Stats ir::Tokenizer::stats() {
+    std::vector<std::pair<std::string, size_t>> unnormalized(
+        unnormalized_terms.begin(), unnormalized_terms.end());
+    std::vector<std::pair<std::string, size_t>> normalized(
+        normalized_terms.begin(), normalized_terms.end());
+
+    std::sort(unnormalized.begin(), unnormalized.end(),
+              [](const auto& left, const auto& right) {
+                  return left.second > right.second;
+              });
+    std::sort(normalized.begin(), normalized.end(),
+              [](const auto& left, const auto& right) {
+                  return left.second > right.second;
+              });
+
+    for (size_t i = 0; i < Stats::TopTermCount; ++i) {
+        m_stats.top_unnormalized_terms[i] = unnormalized[i].first;
+        m_stats.top_normalized_terms[i] = normalized[i].first;
+    }
+
+    return m_stats;
+}
