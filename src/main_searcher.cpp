@@ -149,26 +149,26 @@ tokenize_proximity_query(const std::string& query) {
  * User input is taken from STDIN and output is written to STDOUT.
  *
  * @return 0 if the program is terminated using Ctrl-D, -1 if there is a problem
- * in reading index files.
+ * in reading index files, -2 if there was a problem with command line arguments.
  */
-int main() {
-    std::cout << "Reading index files..." << std::flush;
+int main(int argc, char** argv) {
+    std::cerr << "Reading index files..." << std::flush;
     ir::QueryProcessor query_processor;
     try {
         query_processor =
             ir::QueryProcessor(ir::read_dict_file(), ir::read_index_file());
     } catch (const std::runtime_error& e) {
-        std::cout << e.what() << std::endl;
+        std::cerr << e.what() << std::endl;
         return -1;
     }
-    std::cout << "OK!" << std::endl;
+    std::cerr << "OK!" << std::endl;
 
     // query headers: 1 --> conjunctive, 2 --> phrase, 3 --> proximity
     const std::string query_headers = "123";
 
     std::string query;
     while (std::cin) {
-        std::cout << "\nPlease enter a search query and press Enter\n> "
+        std::cerr << "Please enter a search query and press Enter\n> "
                   << std::flush;
         std::getline(std::cin, query);
         if (std::cin.eof()) {
@@ -184,7 +184,7 @@ int main() {
             ir::one_of(query_headers.begin(), query_headers.end(), query[0]);
 
         if (!proper_query) {
-            std::cout
+            std::cerr
                 << "Your query must be in the format: <query_type> "
                    "<query>\nwhere\n"
                    "\tquery_type == 1 --> conjunctive query:\t<w1> AND <w2> "
@@ -221,20 +221,20 @@ int main() {
                 results = query_processor.proximity_query(tokens, dists);
             }
         } catch (const std::runtime_error& e) {
-            std::cout << e.what() << std::endl;
+            std::cerr << e.what() << std::endl;
             continue;
         }
         // sort the document ids
         std::sort(results.begin(), results.end());
 
         if (results.empty()) {
-            std::cout << "No match found!" << std::endl;
+            std::cerr << "No match found!" << std::endl;
         } else {
-            std::cout << "Matching documents:" << std::endl;
+            std::cerr << "Matching documents:" << std::endl;
             for (size_t doc_id : results) {
                 std::cout << doc_id << '\n';
             }
-            std::cout << std::flush;
+            std::cout << std::endl;
         }
     }
 }
