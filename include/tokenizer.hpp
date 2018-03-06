@@ -52,4 +52,20 @@ std::string normalize(const std::string& token);
  * @param token_vec vector of tokens to normalize in-place.
  */
 void normalize_all(std::vector<std::string>& token_vec);
+
+/**
+ * @brief Check whether the input string is a stopword.
+ *
+ * This function simply checks if the given word is in the stopword list
+ * defined in ir::STOPWORD_PATH.
+ *
+ * For efficiency purposes, the file is read only once when the function is
+ * called for the first time, and the stopword list is sorted. Then, stopword
+ * check is done using binary search.
+ *
+ * @param word Word to check if it is a stopword.
+ *
+ * @return true if word is in stopword list; false, otherwise.
+ */
+bool is_stopword(const std::string& word);
 } // namespace ir

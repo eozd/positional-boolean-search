@@ -132,6 +132,10 @@ tokenize_proximity_query(const std::string& query) {
         }
     }
 
+    if (std::any_of(words.begin(), words.end(), ir::is_stopword)) {
+        throw std::runtime_error(
+            "Stopwords in proximity queries are not supported!");
+    }
     // normalize words
     ir::normalize_all(words);
 
@@ -157,14 +161,14 @@ int main() {
         std::cout << e.what() << std::endl;
         return -1;
     }
-    std::cout << "OK!\n" << std::endl;
+    std::cout << "OK!" << std::endl;
 
     // query headers: 1 --> conjunctive, 2 --> phrase, 3 --> proximity
     const std::string query_headers = "123";
 
     std::string query;
     while (std::cin) {
-        std::cout << "Please enter a search query and press Enter\n> "
+        std::cout << "\nPlease enter a search query and press Enter\n> "
                   << std::flush;
         std::getline(std::cin, query);
         if (std::cin.eof()) {
