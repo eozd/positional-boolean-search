@@ -6,20 +6,29 @@
 #include <file_manager.hpp>
 #include <fstream>
 #include <iostream>
+#include <numeric>
 
 // tell the compiler that stem will be externally linked
 extern int stem(char* p, int i, int j);
 
 /**
  * @brief Split the given string with respect to whitespace characters and
- * return the resulting tokens as a vector.
+ * return the resulting tokens and their positions in the document as a vector.
  *
  * @param str Input string to tokenize.
- * @return
+ *
+ * @return std::vector of pairs containing the tokens and their positions.
  */
-std::vector<std::string> tokenize(const std::string& str) {
+std::vector<std::pair<std::string, size_t>> tokenize(const std::string& str) {
     std::string str_copy(str);
-    return ir::split(str_copy, " \t\n\r\v\f");
+    auto tokens = ir::split(str_copy, " \t\n\r\v\f");
+
+    std::vector<std::pair<std::string, size_t>> result;
+    for (size_t i = 0; i < tokens.size(); ++i) {
+        result.emplace_back(tokens[i], i);
+    }
+
+    return result;
 }
 
 /**
@@ -118,9 +127,22 @@ void ir::normalize_all(std::vector<std::string>& token_vec) {
                     token_vec.end());
 }
 
-std::vector<std::string> ir::get_doc_terms(const raw_doc& doc) {
-    auto tokens = tokenize(doc);
-    normalize_all(tokens);
+std::vector<std::pair<std::string, size_t>>
+ir::get_doc_terms(const raw_doc& doc) {
+    auto tokens_indices = tokenize(doc);
 
-    return tokens;
+    std::transform(
+        tokens_indices.begin(), tokens_indices.end(), tokens_indices.begin(),
+        [](const auto& token_pair) -> std::pair<std::string, size_t> {
+            return {normalize(token_pair.first), token_pair.second};
+        });
+
+    tokens_indices.erase(std::remove_if(tokens_indices.begin(),
+                                        tokens_indices.end(),
+                                        [](const auto& token_pair) {
+                                            return token_pair.first.empty();
+                                        }),
+                         tokens_indices.end());
+
+    return tokens_indices;
 }

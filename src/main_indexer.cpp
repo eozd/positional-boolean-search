@@ -72,8 +72,9 @@ ir::pos_inv_index build_pos_inv_index(const ir::doc_term_index& term_docs) {
         size_t doc_id = pair.first;
         const auto& term_vec = pair.second;
 
-        for (size_t pos = 0; pos < term_vec.size(); ++pos) {
-            const auto& term = term_vec[pos];
+        for (size_t i = 0; i < term_vec.size(); ++i) {
+            const std::string& term = term_vec[i].first;
+            size_t pos = term_vec[i].second;
             auto& doc_to_pos = result[term];
 
             // find pos index of the corresponding document

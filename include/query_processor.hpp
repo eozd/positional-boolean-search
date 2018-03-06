@@ -142,7 +142,7 @@ class QueryProcessor {
 template <typename VectorIterator, typename IntIterator>
 bool proximity_seq_exists(size_t pos, VectorIterator pos_begin,
                           VectorIterator pos_end, IntIterator dist_begin,
-                          IntIterator dist_end) const {
+                          IntIterator dist_end) {
     // if no value was returned at this point, seq doesn't exist
     if (pos_begin == pos_end) {
         assert(dist_begin == dist_end);

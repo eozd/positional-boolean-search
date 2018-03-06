@@ -17,7 +17,7 @@ namespace ir {
  *
  * @return std::vector of normalized terms in the given raw document.
  */
-std::vector<std::string> get_doc_terms(const raw_doc& doc);
+std::vector<std::pair<std::string, size_t>> get_doc_terms(const raw_doc& doc);
 
 /**
  * @brief Return the normalized version a given token.
