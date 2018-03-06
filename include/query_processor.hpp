@@ -1,6 +1,8 @@
 #pragma once
 
 #include "defs.hpp"
+#include <algorithm>
+#include <cassert>
 #include <string>
 #include <vector>
 
@@ -78,6 +80,24 @@ class QueryProcessor {
                                         const std::vector<size_t>& dists) const;
 
   private:
+    /**
+     * @brief Check if the document with the given id contains a proximity query
+     * specified by words and dists vectors.
+     *
+     * This function starts a recursive positional search from every occurrence
+     * of the first word given in words vector. If any of the sequences that
+     * obey the given distances exist in the document, the function retuns true.
+     *
+     * @param doc_id ID of the document to check if it contains the given
+     * proximity query.
+     * @param words std::vector of words to search as specified in
+     * QueryProcessor::proximity_query.
+     * @param dists std::vector of distances as specified in
+     * QueryProcessor::proximity_query.
+     *
+     * @return true if the given proximity query exists in the document with the
+     * given ID; false, otherwise.
+     */
     bool contains_proximity_query(size_t doc_id,
                                   const std::vector<std::string>& words,
                                   const std::vector<size_t>& dists) const;
@@ -85,5 +105,83 @@ class QueryProcessor {
   private:
     term_id_map m_dict;
     id_pos_map m_index;
+};
+
+/**
+ * @brief Check if a position sequence as specified in
+ * QueryProcessor::proximity_query exists in the given position and distance
+ * sequences.
+ *
+ * This function checks if a sequence of positions that are certain distance
+ * apart from each other exist in the given position and distance sequences.
+ *
+ * Each entry of position iterators (pos_begin and pos_end) must contain an
+ * iterable that in turn contains the positions of that term in the document.
+ *
+ * Each entry of distance iterators (dist_begin and dist_end) must contain the
+ * maximum allowable distance between the current position as given in pos and
+ * the position of the next term.
+ *
+ * This function recursively searches all possible branches to construct a
+ * sequence of positions.
+ *
+ * @tparam VectorIterator Iterator whose dereferenced entry corresponds to a
+ * vector of positions.
+ * @tparam IntIterator Iterator whose dereferenced entry corresponds to a
+ * distance.
+ * @param pos Position of the current term.
+ * @param pos_begin Iterator pointing to the positions of the next term.
+ * @param pos_end Iterator pointing to the end of the position vector sequence.
+ * @param dist_begin Iterator pointing to the maximum allowable distance between
+ * the current term (whose position is given by pos) and the next term.
+ * @param dist_end Iterator pointing to the end of the distance sequence.
+ *
+ * @return true if a proximity sequence is constructable from the given
+ * positions and distances; false, otherwise.
+ */
+template <typename VectorIterator, typename IntIterator>
+bool proximity_seq_exists(size_t pos, VectorIterator pos_begin,
+                          VectorIterator pos_end, IntIterator dist_begin,
+                          IntIterator dist_end) const {
+    // if no value was returned at this point, seq doesn't exist
+    if (pos_begin == pos_end) {
+        assert(dist_begin == dist_end);
+        return false;
+    }
+    size_t curr_dist = *dist_begin;
+    // max allowed position index
+    size_t max_pos = pos + curr_dist + 1;
+    const auto& pos_vec = *pos_begin;
+
+    // find the smallest value greater than current position via binary search
+    auto first_greater_it =
+        std::upper_bound(pos_vec.begin(), pos_vec.end(), pos);
+
+    if (first_greater_it == pos_vec.end() || *first_greater_it > max_pos) {
+        // if no such value exists or it is too far
+        return false;
+    } else if (pos_begin + 1 == pos_end) {
+        // if we are at the end of the search list, return true; otherwise, we
+        // should check the rest of the sequence
+        assert(dist_begin + 1 == dist_end);
+        return true;
+    }
+
+    // get all the next positions that are <= max_pos
+    std::vector<size_t> valid_next_pos;
+    for (auto it = first_greater_it; it != pos_vec.end() && *it <= max_pos;
+         ++it) {
+        valid_next_pos.push_back(*it);
+    }
+
+    // check if a sequence from any of them exists; if so, return true.
+    for (size_t next_pos : valid_next_pos) {
+        if (proximity_seq_exists(next_pos, pos_begin + 1, pos_end,
+                                 dist_begin + 1, dist_end)) {
+            return true;
+        }
+    }
+    // no sequence was found.
+    return false;
 };
 } // namespace ir

@@ -62,46 +62,32 @@ std::vector<size_t> ir::QueryProcessor::conjunctive_query(
     return result;
 }
 
-template <typename InputIterator1, typename InputIterator2>
-bool recurse(size_t pos, InputIterator1 pos_begin, InputIterator1 pos_end,
-             InputIterator2 dist_begin, InputIterator2 dist_end) {
-    if (pos_begin == pos_end) {
-        assert(dist_begin == dist_end);
-        return false;
-    }
-    size_t dist = *dist_begin;
-    size_t max_pos = pos + dist + 1;
-    const auto& pos_vec = *pos_begin;
+std::vector<size_t>
+ir::QueryProcessor::proximity_query(const std::vector<std::string>& words,
+                                    const std::vector<size_t>& dists) const {
+    // get the common docs first
+    auto common_docs = this->conjunctive_query(words);
 
-    auto first_greater_it =
-        std::upper_bound(pos_vec.begin(), pos_vec.end(), pos);
-
-    if (first_greater_it == pos_vec.end() || *first_greater_it > max_pos) {
-        return false;
-    } else if (pos_begin + 1 == pos_end) {
-        assert(dist_begin + 1 == dist_end);
-        return true;
+    std::vector<size_t> result;
+    if (common_docs.empty()) {
+        return result;
     }
 
-    std::vector<size_t> valid_next_pos;
-    for (auto it = first_greater_it; it != pos_vec.end() && *it <= max_pos;
-         ++it) {
-        valid_next_pos.push_back(*it);
-    }
-
-    for (size_t next_pos : valid_next_pos) {
-        if (recurse(next_pos, pos_begin + 1, pos_end, dist_begin + 1,
-                    dist_end)) {
-            return true;
+    // check if each document contains the proximity query
+    for (const size_t doc_id : common_docs) {
+        if (contains_proximity_query(doc_id, words, dists)) {
+            result.push_back(doc_id);
         }
     }
-    return false;
-};
+
+    return result;
+}
 
 bool ir::QueryProcessor::contains_proximity_query(
     size_t doc_id, const std::vector<std::string>& words,
     const std::vector<size_t>& dists) const {
 
+    // store the position vector of each word in the current doc with id doc_id
     std::vector<std::vector<size_t>> word_pos;
     for (const auto& word : words) {
         size_t word_id = m_dict.at(word);
@@ -113,30 +99,13 @@ bool ir::QueryProcessor::contains_proximity_query(
         }
     }
 
+    // check if a proximity sequence exists starting at any of the first words.
+    // if so, return true
     for (size_t pos : word_pos[0]) {
-        if (recurse(pos, word_pos.begin() + 1, word_pos.end(), dists.begin(),
-                    dists.end())) {
+        if (proximity_seq_exists(pos, word_pos.begin() + 1, word_pos.end(),
+                                 dists.begin(), dists.end())) {
             return true;
         }
     }
     return false;
-}
-
-std::vector<size_t>
-ir::QueryProcessor::proximity_query(const std::vector<std::string>& words,
-                                    const std::vector<size_t>& dists) const {
-    auto common_docs = this->conjunctive_query(words);
-
-    std::vector<size_t> result;
-    if (common_docs.empty()) {
-        return result;
-    }
-
-    for (const size_t doc_id : common_docs) {
-        if (contains_proximity_query(doc_id, words, dists)) {
-            result.push_back(doc_id);
-        }
-    }
-
-    return result;
 }
