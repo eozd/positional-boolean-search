@@ -115,6 +115,7 @@ ir::pos_inv_index build_pos_inv_index(const ir::doc_term_index& term_docs) {
  * @return 0 if successful.
  */
 int main() {
+    std::cout << "Building the index..." << std::flush;
     // parse the files and read the docs
     auto raw_docs = docs_from_files(ir::get_data_file_list());
 
@@ -130,9 +131,14 @@ int main() {
     // build the positional inverted index
     auto inverted_index = build_pos_inv_index(term_docs);
 
+    std::cout << "OK!" << std::endl;
+    std::cout << "Writing index files..." << std::flush;
+
     // save the positional inverted index as two files
     ir::write_dict_file(inverted_index);
     ir::write_index_file(inverted_index);
+
+    std::cout << "OK!" << std::endl;
 
     return 0;
 }

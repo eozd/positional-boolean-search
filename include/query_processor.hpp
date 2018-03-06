@@ -78,6 +78,11 @@ class QueryProcessor {
                                         const std::vector<size_t>& dists) const;
 
   private:
+    bool contains_proximity_query(size_t doc_id,
+                                  const std::vector<std::string>& words,
+                                  const std::vector<size_t>& dists) const;
+
+  private:
     term_id_map m_dict;
     id_pos_map m_index;
 };

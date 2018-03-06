@@ -148,6 +148,7 @@ tokenize_proximity_query(const std::string& query) {
  * in reading index files.
  */
 int main() {
+    std::cout << "Reading index files..." << std::flush;
     ir::QueryProcessor query_processor;
     try {
         query_processor =
@@ -156,6 +157,7 @@ int main() {
         std::cout << e.what() << std::endl;
         return -1;
     }
+    std::cout << "OK!\n" << std::endl;
 
     // query headers: 1 --> conjunctive, 2 --> phrase, 3 --> proximity
     const std::string query_headers = "123";
