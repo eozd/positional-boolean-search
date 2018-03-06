@@ -1,8 +1,8 @@
-#include <cstring>
 #include "util.hpp"
+#include <cstring>
 
-std::vector<std::string> split(std::string& str,
-                               const std::string& delimeters) {
+std::vector<std::string> ir::split(std::string& str,
+                                   const std::string& delimeters) {
     std::vector<std::string> result;
 
     // find the first token

@@ -19,7 +19,7 @@ extern int stem(char* p, int i, int j);
  */
 std::vector<std::string> tokenize(const std::string& str) {
     std::string str_copy(str);
-    return split(str_copy, " \t\n\r\v\f");
+    return ir::split(str_copy, " \t\n\r\v\f");
 }
 
 /**

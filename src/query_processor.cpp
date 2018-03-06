@@ -2,7 +2,7 @@
 #include "util.hpp"
 #include <algorithm>
 
-ir::QueryProcessor::QueryProcessor() {}
+//ir::QueryProcessor::QueryProcessor() = default;
 
 ir::QueryProcessor::QueryProcessor(const term_id_map& dict,
                                    const id_pos_map& index)

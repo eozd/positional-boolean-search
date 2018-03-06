@@ -25,7 +25,7 @@ class QueryProcessor {
      * an answer to any query. This constructor is merely for convenience
      * purposes related to scoping.
      */
-    QueryProcessor();
+    QueryProcessor() = default;
 
     /**
      * @brief Positional inverted index constructor that constructs a

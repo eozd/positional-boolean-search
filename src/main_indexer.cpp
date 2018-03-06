@@ -20,7 +20,9 @@ ir::raw_doc_index docs_from_files(const std::vector<std::string>& file_list) {
     ir::raw_doc_index all_docs;
     for (const auto& filepath : file_list) {
         std::ifstream ifs(filepath);
+        // get all the docs in the current file
         auto docs_per_file = ir::parse_file(ifs);
+        // store all the docs in the result variable
         all_docs.insert(docs_per_file.begin(), docs_per_file.end());
     }
 
@@ -40,6 +42,8 @@ ir::doc_term_index terms_from_raw_docs(const ir::raw_doc_index& raw_docs) {
     for (const auto& pair : raw_docs) {
         const size_t id = pair.first;
         const auto& raw_doc = pair.second;
+        // get all the normalized terms in the raw document content and store in
+        // document id
         term_docs[id] = ir::get_doc_terms(raw_doc);
     }
     return term_docs;
@@ -49,7 +53,13 @@ ir::doc_term_index terms_from_raw_docs(const ir::raw_doc_index& raw_docs) {
  * @brief Build the positional inverted index from a mapping from document ID
  * to vectors of normalized terms in the corresponding documents.
  *
- * This function builds the positional inverted index by todo: explain
+ * This function builds the positional inverted index by iterating over all
+ * the terms of a document and setting the document id of each of those terms to
+ * the current document. Position of each term is assigned to its index in the
+ * term vector of its corresponding document.
+ *
+ * After this procedure, document vector of each term in the resulting index
+ * is sorted with respect to the document id.
  *
  * @param term_docs Mapping from document IDs to vectors of normalized terms.
  *
@@ -76,8 +86,10 @@ ir::pos_inv_index build_pos_inv_index(const ir::doc_term_index& term_docs) {
             if (doc_of_term_it == doc_to_pos.end()) {
                 // no pos list for the doc; create one
                 doc_to_pos.emplace_back(doc_id, std::vector<size_t>());
+                // add the pos to the pos list
                 doc_to_pos.back().second.push_back(pos);
             } else {
+                // pos list exists for current doc; add the pos
                 doc_of_term_it->second.push_back(pos);
             }
         }
