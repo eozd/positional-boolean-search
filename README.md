@@ -1,8 +1,43 @@
-## CmpE 493 Assignment 1
+## Boolean Search with Positional Index
+In this project, we implement a simple boolean searcher using a positional
+inverted index that were built on Reuters-21578 dataset. This is done in two
+steps:
+
+1. Building the positional inverted index. This step requires Reuters-21578
+dataset and a list of stopwords.
+2. Searching using the already built positional inverted index. This step
+doesn't require any data except for the dictionary and index files created using
+the indexer. Three search types are supported:
+  1. **Conjunctive query**: This is the most basic boolean search query. A
+  matching document must contain all the given words in any order.
+  An example query is as follows:
+  ```
+  1 price AND bbc AND crude
+  ```
+  Here, 1 denotes the type of query. The rest of the query follows after a
+  single space.
+  2. **Phrase query**: This query requires the given words to occur
+  consecutively in the given document. An example query is as follows:
+  ```
+  2 immediate price increase
+  ```
+  3. **Proximity query**: This query requires the given words to have at most
+  some number of words in between. For example
+  ```
+  3 citibank /3 reuter /10 money
+  ```
+  matches documents where reuter words occurs at most 3 words after citibank,
+  and money occurs at most 10 words after reuter. Ordering in proximity queries
+  are important.
 
 ### Requirements
 1. g++-5 and above with full C++14 support
 2. cmake 3.2.2 and above
+3. dirent.h header to retrieve file information. This normally comes installed
+C POSIX library. However, if you are on Windows and compiling with MSVC,
+you need to obtain this header manually.
+4. Porter Stemmer in file src/porter\_stemmer.cpp. For reference page, go to
+[https://tartarus.org/martin/PorterStemmer/](https://tartarus.org/martin/PorterStemmer/).
 
 ### Build
 To build the project, run the following commands in the project root directory
@@ -47,7 +82,13 @@ Dataset
 ...
 ```
 
-To build the index, simply run the indexer using
+To obtain the Reutrs-21578 dataset, please go to
+[reuters21578](http://www.daviddlewis.com/resources/testcollections/reuters21578/),
+download the gzipped tar archive and copy it into the project root directory.
+Then, by running extract\_dataset.sh script, you can create the necessary
+dataset layout.
+
+Afterwards to build the index, simply run the indexer using
 ```
 ./indexer
 ```

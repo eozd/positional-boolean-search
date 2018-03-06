@@ -1,5 +1,11 @@
 .idea/
-cmake-build-debug/
+cmake-build-*/
 Dataset/
 doc/
 build/
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.synctex.gz
+*.toc
