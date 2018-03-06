@@ -11,17 +11,10 @@
 // tell the compiler that stem will be externally linked
 extern int stem(char* p, int i, int j);
 
-/**
- * @brief Split the given string with respect to whitespace characters and
- * return the resulting tokens and their positions in the document as a vector.
- *
- * @param str Input string to tokenize.
- *
- * @return std::vector of pairs containing the tokens and their positions.
- */
-std::vector<std::pair<std::string, size_t>> tokenize(const std::string& str) {
+std::vector<std::pair<std::string, size_t>>
+ir::Tokenizer::tokenize(const std::string& str) const {
     std::string str_copy(str);
-    auto tokens = ir::split(str_copy, " \t\n\r\v\f");
+    auto tokens = split(str_copy, " \t\n\r\v\f");
 
     std::vector<std::pair<std::string, size_t>> result;
     for (size_t i = 0; i < tokens.size(); ++i) {
@@ -31,17 +24,7 @@ std::vector<std::pair<std::string, size_t>> tokenize(const std::string& str) {
     return result;
 }
 
-/**
- * @brief Remove certain punctuation characters from certain parts of the given
- * string and return a copy.
- *
- * Punctuation characters are removed as specified in ir::normalize.
- *
- * @param token Input token from which punctuation will be removed.
- *
- * @return String with certain punctuation characters removed from token.
- */
-std::string remove_punctuation(const std::string& token) {
+std::string ir::Tokenizer::remove_punctuation(const std::string& token) const {
     std::string result(token);
 
     // remove certain puncts from anywhere in the word
@@ -70,7 +53,7 @@ std::string remove_punctuation(const std::string& token) {
     return result;
 }
 
-bool ir::is_stopword(const std::string& word) {
+bool ir::Tokenizer::is_stopword(const std::string& word) const {
     static std::vector<std::string> stopwords;
 
     // if calling for the first time
@@ -88,7 +71,7 @@ bool ir::is_stopword(const std::string& word) {
     return std::binary_search(stopwords.begin(), stopwords.end(), word);
 }
 
-std::string ir::normalize(const std::string& token) {
+std::string ir::Tokenizer::normalize(const std::string& token) const {
     // remove punctuation using heuristics
     std::string result = remove_punctuation(token);
     // convert string to lowercase
@@ -104,23 +87,24 @@ std::string ir::normalize(const std::string& token) {
     return result;
 }
 
-void ir::normalize_all(std::vector<std::string>& token_vec) {
+void ir::Tokenizer::normalize_all(std::vector<std::string>& token_vec) const {
     // normalize all words in-place
-    std::transform(token_vec.begin(), token_vec.end(), token_vec.begin(),
-                   normalize);
+    std::transform(
+        token_vec.begin(), token_vec.end(), token_vec.begin(),
+        [this](const std::string& token) { return this->normalize(token); });
     // remove empty strings
     token_vec.erase(std::remove(token_vec.begin(), token_vec.end(), ""),
                     token_vec.end());
 }
 
 std::vector<std::pair<std::string, size_t>>
-ir::get_doc_terms(const raw_doc& doc) {
+ir::Tokenizer::get_doc_terms(const raw_doc& doc) const {
     auto tokens_indices = tokenize(doc);
 
     std::transform(
         tokens_indices.begin(), tokens_indices.end(), tokens_indices.begin(),
-        [](const auto& token_pair) -> std::pair<std::string, size_t> {
-            return {normalize(token_pair.first), token_pair.second};
+        [this](const auto& token_pair) -> std::pair<std::string, size_t> {
+            return {this->normalize(token_pair.first), token_pair.second};
         });
 
     tokens_indices.erase(std::remove_if(tokens_indices.begin(),
@@ -132,3 +116,5 @@ ir::get_doc_terms(const raw_doc& doc) {
 
     return tokens_indices;
 }
+
+ir::Tokenizer::Stats ir::Tokenizer::stats() const { return m_stats; }

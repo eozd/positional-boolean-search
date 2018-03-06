@@ -47,7 +47,8 @@ std::vector<std::string> tokenize_conjunctive_query(const std::string& query) {
     }
 
     // normalize words
-    ir::normalize_all(words);
+    ir::Tokenizer tokenizer;
+    tokenizer.normalize_all(words);
     return words;
 }
 
@@ -76,7 +77,8 @@ std::vector<std::string> tokenize_phrase_query(const std::string& query) {
     std::vector<std::string> words = ir::split(query_search_part, " ");
 
     // normalize words
-    ir::normalize_all(words);
+    ir::Tokenizer tokenizer;
+    tokenizer.normalize_all(words);
     return words;
 }
 
@@ -132,12 +134,17 @@ tokenize_proximity_query(const std::string& query) {
         }
     }
 
-    if (std::any_of(words.begin(), words.end(), ir::is_stopword)) {
+    ir::Tokenizer tokenizer;
+    bool contain_stopword = std::any_of(words.begin(), words.end(),
+                                        [&tokenizer](const std::string& word) {
+                                            return tokenizer.is_stopword(word);
+                                        });
+    if (contain_stopword) {
         throw std::runtime_error(
             "Stopwords in proximity queries are not supported!");
     }
     // normalize words
-    ir::normalize_all(words);
+    tokenizer.normalize_all(words);
 
     return {words, dists};
 }
@@ -149,7 +156,8 @@ tokenize_proximity_query(const std::string& query) {
  * User input is taken from STDIN and output is written to STDOUT.
  *
  * @return 0 if the program is terminated using Ctrl-D, -1 if there is a problem
- * in reading index files, -2 if there was a problem with command line arguments.
+ * in reading index files, -2 if there was a problem with command line
+ * arguments.
  */
 int main(int argc, char** argv) {
     std::cerr << "Reading index files..." << std::flush;
